@@ -11,30 +11,9 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
-    private Socket clientSocket;
-    private PrintWriter out;
-    private BufferedReader in;
     private Gson gson = new Gson();
 
     final Scanner sc = new Scanner(System.in);
-
-    public void startConnection(String ip, int port) throws IOException {
-        clientSocket = new Socket(ip, port);
-        out = new PrintWriter(clientSocket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-    }
-
-    public Command sendMessage(String msg) throws IOException {
-        out.println(msg);
-        String res = in.readLine();
-        return gson.fromJson(res, Command.class);
-    }
-
-    public void stopConnection() throws IOException {
-        in.close();
-        out.close();
-        clientSocket.close();
-    }
 
     public Personne createPersonFromCLI(){
         //On récupére les valeurs pour la création d'un objet personne
@@ -49,72 +28,68 @@ public class Client {
         );
     }
 
-    public String forgeAndLaunchCommand(Object p,String commandInString) throws IOException {
+    public Command forgeCommand(Object p,String commandInString) throws IOException {
         //Création de la commande
-        Command c = new Command(
+        if(commandInString.equals("getPersonne")){
+            return new Command(
+                commandInString,
+                null,
+                (Integer) p
+            );
+        }
+
+        return new Command(
                 commandInString,
                 p
         );
-
-        //Envoi de la commande en string au format JSON
-        return this.analyzeResponse(
-                this.sendMessage(
-                        gson.toJson(c)
-                )
-        );
     }
 
-    public void addPersonne() throws IOException {
+    public Command addPersonne() throws IOException {
         //CREATION D'UNE NOUVELLE PERSONNE
         System.out.println("\t CREATION D'UNE NOUVELLE PERSONNE ");
 
         //Création de la nouvelle personne
         Personne p = this.createPersonFromCLI();
 
-        System.out.println(
-                this.forgeAndLaunchCommand(
-                        p,
-                        "addPersonne"
-                )
+
+        return this.forgeCommand(
+                p,
+                "addPersonne"
         );
     }
 
-    public void askForIdFromPerson() throws IOException {
+    public Command askForIdFromPerson() throws IOException {
         //RECHERCHE DE L'ID D'UNE PERSONNE A PARTIR DE SES INFORMATIONS
         System.out.println("\t OBTENEZ L'ID D'UNE PERSONNE A PARTIR DE SES INFORMATIONS ");
 
         //Création de la nouvelle personne
         Personne p = this.createPersonFromCLI();
 
-        System.out.println(
-                this.forgeAndLaunchCommand(
-                        p,
-                        "getId"
-                )
+        return this.forgeCommand(
+                p,
+                "getId"
         );
     }
 
-    public void getPersonFromID() throws IOException {
+    public Command getPersonFromID() throws IOException {
         //RECHERCHE D'UNE PERSONNE A PARTIR DE SON ID
         System.out.println("\t RECHERCHE D'UNE PERSONNE A PARTIR DE SON ID ");
 
         //Création de la nouvelle personne
         System.out.print("\t Veuillez entrer l'ID de la personne à rechercher : ");
-        String ID = sc.nextLine();
+        Integer ID = sc.nextInt();
 
-        System.out.println(
-                this.forgeAndLaunchCommand(
-                        ID,
-                        "getPersonne"
-                )
+
+        return this.forgeCommand(
+                ID,
+                "getPersonne"
         );
     }
 
     public String analyzeResponse(Command c){
-        String output = "@@@@";
+        String output = "";
         Object s = c.getObject();
 
-        System.out.println(s);
         if(s instanceof Double){
             s = (int) Math.floor( (double) s) ;
         }else{
@@ -139,52 +114,65 @@ public class Client {
 
     public void startClient() throws IOException {
 
-        Client c = new Client();
-        System.out.print("Adresse IP du serveur : ");
+        final Scanner sc_final = new Scanner(System.in);
+        System.out.print("Veuiller entrer l'IP du serveur : ");
+        final Socket clientSocket = new Socket( sc_final.nextLine(), 9926);
+        Client cli = this;
+        final PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+        final BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-        while (true){
-            c.startConnection((new Scanner(System.in)).nextLine(), 9926);
-            System.out.println("Connexion au serveur");
+        Thread envoyer = new Thread(new Runnable() {
+            String msg;
+            Command command;
+            String reception;
+            @Override
+            public void run() {
 
-
-
-            new Thread(() -> {
-                String msg;
-                System.out.print(
-                        "=======================================================\n" +
-                                "\t 1 - Créer une nouvelle personne \n" +
-                                "\t 2 - Chercher une personne par son ID \n" +
-                                "\t 3 - Chercher une personne par ses informations \n" +
-                                "=======================================================\n\n" +
-                                "Choix : "
-                );
-                msg = sc.nextLine();
-                System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
                 try {
-                    switch (msg) {
-                        case "1":
-                            c.addPersonne();
-                            break;
-                        case "2":
-                            c.getPersonFromID();
-                            break;
-                        case "3":
-                            c.askForIdFromPerson();
-                            break;
-                        default:
-                            System.out.println("Veuillez entrer une valeur correcte !");
-                            break;
+                    while (true){
+                        System.out.print(
+                                "=======================================================\n" +
+                                        "\t 1 - Créer une nouvelle personne \n" +
+                                        "\t 2 - Chercher une personne par son ID \n" +
+                                        "\t 3 - Chercher une personne par ses informations \n" +
+                                        "=======================================================\n\n" +
+                                        "Choix : "
+                        );
+                        msg = sc_final.nextLine();
+                        System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+                        if(msg.equals("1")){
+                                command = cli.addPersonne();
+                        }else if(msg.equals("2")){
+                            command = cli.getPersonFromID();
+                        }else if(msg.equals("3")){
+                            command = cli.askForIdFromPerson();
+                        }
+                        out.println(gson.toJson(command));
+                        out.flush();
+
+                        reception = in.readLine();
+                        if(reception != null){
+                            System.out.println( cli.analyzeResponse(
+                                    gson.fromJson(
+                                            reception,
+                                            Command.class
+                                    )
+                            ) );
+                        }
+                        reception = null;
                     }
                 } catch (IOException e) {
-                    try {
-                        stopConnection();
-                    } catch (IOException ioException) {
-                    }
-                    System.out.println("Serveur déconecté");
+                    e.printStackTrace();
                 }
-            }).start();
-        }
+            }
+        });
+        envoyer.start();
 
 
+    }
+
+    public static void main(String[] args) throws IOException {
+        Client c = new Client();
+        c.startClient();
     }
 }

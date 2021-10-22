@@ -31,25 +31,7 @@ public class Server {
         System.out.println("==== WAITING FOR CONNECTION ===");
 
         while (true){
-
-            clientSocket = serverSocket.accept();
-            out = new PrintWriter(clientSocket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            System.out.println("==== WAITING FOR COMMANDS ====");
-            new Thread(() -> {
-                System.out.println("===== CONNECTION ACCEPTED =====");
-                try {
-                    String greeting = in.readLine();
-                    out.println(
-                            processCommand(greeting)
-                    );
-                    System.out.println(invocation.getDao());
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }).start();
-
+            new ClientHandler(serverSocket.accept(), this).start();
         }
 
     }
@@ -66,7 +48,7 @@ public class Server {
     public Object processCommand(String s) throws Exception {
         Command c = gson.fromJson(s, Command.class);
         String nomMethode = c.getCommandType();
-        Object o;
+        Object o = null;
         if(!nomMethode.equals("getPersonne")){
             o = gson.fromJson(
                     gson.toJson(
@@ -74,13 +56,13 @@ public class Server {
                     ), Personne.class
             );
         }else{
-            o = (Object) c.getObject();
-            //o = Integer.parseInt((String) c.getObject());
+            o = c.getPersonneID();
+
+            System.out.println(o + " " + o.getClass());
         }
 
         Class types[] = { o.getClass() };
         Object param[] = { o };
-
 
         try {
             Object res = this.invocation.invoquer(
@@ -101,8 +83,42 @@ public class Server {
 
     }
 
+
     public static void main(String[] args) throws Exception {
         Server server = new Server();
         server.start();
+    }
+
+    public static class ClientHandler extends Thread{
+        private Socket clientSocket;
+        private PrintWriter out;
+        private BufferedReader in;
+        private Server server;
+
+        public ClientHandler(Socket socket, Server s) {
+            this.clientSocket = socket;
+            this.server = s;
+        }
+
+        public void run() {
+            try {
+                System.out.println("==== NEW CONNECTION FROM " + clientSocket.getInetAddress() + " ===");
+                out = new PrintWriter(clientSocket.getOutputStream(), true);
+                in = new BufferedReader(
+                        new InputStreamReader(clientSocket.getInputStream()));
+
+                String inputLine;
+                while ((inputLine = in.readLine()) != null) {
+                    out.println(server.processCommand(inputLine));
+                    out.flush();
+                }
+
+                in.close();
+                out.close();
+                clientSocket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

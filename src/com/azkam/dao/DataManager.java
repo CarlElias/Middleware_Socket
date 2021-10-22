@@ -108,8 +108,9 @@ public class DataManager
 
     @Override
     public String toString() {
+        System.out.println("");
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         String msg = "";
-        msg += ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
         for(int i = 0; i < personneVector.size(); i++){
             Personne p = personneVector.get(i);
             msg += "\nID : " + i + " - String : " + p.toString() + "\n";
