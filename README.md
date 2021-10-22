@@ -9,7 +9,7 @@ Un client peut effectuer plusieurs requêtes :
 
 - [Une personne](http://ecariou.perso.univ-pau.fr/cours/sd-l3/Personne.java) | [Documentation](http://ecariou.perso.univ-pau.fr/cours/sd-l3/Personne.html).
 - [Gestion de la liste des personnes](http://ecariou.perso.univ-pau.fr/cours/sd-l3/DataManager.java) | [Documentation](http://ecariou.perso.univ-pau.fr/cours/sd-l3/DataManager.html).
--[Exception associée](http://ecariou.perso.univ-pau.fr/cours/sd-l3/InvalidIdException.java) | [Documentation](http://ecariou.perso.univ-pau.fr/cours/sd-l3/InvalidIdException.html).
+- [Exception associée](http://ecariou.perso.univ-pau.fr/cours/sd-l3/InvalidIdException.java) | [Documentation](http://ecariou.perso.univ-pau.fr/cours/sd-l3/InvalidIdException.html).
 
 Plusieurs clients doivent pouvoir être connectés simultanément au serveur.
 
